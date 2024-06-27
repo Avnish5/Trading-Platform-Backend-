@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: Trading-Platform  # Replace with your application name
+  servlet:
+    multipart:
+      enabled: true
+  datasource:
+    url: jdbc:mysql://localhost:3306/trading
+    username: root
+    password: Avnein4988@
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: update  # Use 'update' to automatically update schema, or 'create-drop' for testing
+
+server:
+  port: 8080  # Replace with your desired server port
+
