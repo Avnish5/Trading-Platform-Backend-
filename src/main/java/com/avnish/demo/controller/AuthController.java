@@ -6,6 +6,7 @@ import com.avnish.demo.modal.User;
 import com.avnish.demo.repository.UserRepository;
 import com.avnish.demo.response.AuthResponse;
 import com.avnish.demo.service.CustomUserDetailsService;
+import com.avnish.demo.service.EmailService;
 import com.avnish.demo.service.TwoFactorOtpService;
 import com.avnish.demo.utils.OtpUtils;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,10 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -34,6 +32,9 @@ public class AuthController {
 
     @Autowired
     TwoFactorOtpService twoFactorOtpService;
+
+    @Autowired
+    EmailService emailService;
 
 
     @PostMapping("/signup")
@@ -76,6 +77,7 @@ public class AuthController {
 
         User authUser=userRepository.findByEmail(userName);
 
+
         if(user.getTwofactorAuth().isEnabled())
         {
             AuthResponse authResponse=new AuthResponse();
@@ -91,6 +93,8 @@ public class AuthController {
                 twoFactorOtpService.deleteTwoFactorOtp(oldTwoFactorOtp);
             }
             TwoFactorOtp newTwoFactorOtp=twoFactorOtpService.createTwoFactorOtp(authUser,otp,jwt);
+
+            emailService.sendVerificationEmail(userName, otp);
             authResponse.setSession(newTwoFactorOtp.getId());
             return new ResponseEntity<>(authResponse, HttpStatus.CREATED);
         }
@@ -118,4 +122,24 @@ public class AuthController {
         }
         return new UsernamePasswordAuthenticationToken(userName, password, userDetails.getAuthorities());
     }
+
+    private ResponseEntity<AuthResponse> verifyLoginOtp(@PathVariable String otp,@RequestParam String id ) throws  Exception{
+
+        TwoFactorOtp twoFactorOtp=twoFactorOtpService.findById(id);
+
+        if(twoFactorOtpService.verifyTwoFactorOtp(twoFactorOtp,otp))
+        {
+            AuthResponse authResponse=new AuthResponse();
+            authResponse.setMessage("Two factor authentication successful");
+            authResponse.setTwoFactorAuthEnabled(true);
+            authResponse.setJwt(twoFactorOtp.getJwt());
+            return new ResponseEntity<>(authResponse, HttpStatus.OK);
+
+        }
+
+        throw new Exception("Invalid Otp");
+
+    }
+
+
 }
