@@ -1,12 +1,16 @@
 package com.avnish.demo.controller;
 
 import com.avnish.demo.config.JwtProvider;
+import com.avnish.demo.modal.TwoFactorOtp;
 import com.avnish.demo.modal.User;
 import com.avnish.demo.repository.UserRepository;
 import com.avnish.demo.response.AuthResponse;
 import com.avnish.demo.service.CustomUserDetailsService;
+import com.avnish.demo.service.TwoFactorOtpService;
+import com.avnish.demo.utils.OtpUtils;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,6 +31,9 @@ public class AuthController {
 
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    TwoFactorOtpService twoFactorOtpService;
 
 
     @PostMapping("/signup")
@@ -66,6 +73,27 @@ public class AuthController {
         Authentication auth=auhtenticate(userName,password);
         SecurityContextHolder.getContext().setAuthentication(auth);
         String jwt= JwtProvider.generateToken(auth);
+
+        User authUser=userRepository.findByEmail(userName);
+
+        if(user.getTwofactorAuth().isEnabled())
+        {
+            AuthResponse authResponse=new AuthResponse();
+            authResponse.setMessage("Two Factor Authentication is enabled");
+            authResponse.setTwoFactorAuthEnabled(true);
+
+            String otp= OtpUtils.generateOtp();
+
+            TwoFactorOtp oldTwoFactorOtp=twoFactorOtpService.findByUser(authUser);
+
+            if(oldTwoFactorOtp!=null)
+            {
+                twoFactorOtpService.deleteTwoFactorOtp(oldTwoFactorOtp);
+            }
+            TwoFactorOtp newTwoFactorOtp=twoFactorOtpService.createTwoFactorOtp(authUser,otp,jwt);
+            authResponse.setSession(newTwoFactorOtp.getId());
+            return new ResponseEntity<>(authResponse, HttpStatus.CREATED);
+        }
 
         AuthResponse response=new AuthResponse();
         response.setJwt(jwt);
