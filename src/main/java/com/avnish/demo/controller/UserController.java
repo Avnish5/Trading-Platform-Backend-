@@ -27,7 +27,7 @@ public class UserController {
         User user=userService.findUserProfileByJwt(jwt);
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
-
+//enabling verify the otp
     @GetMapping("/enable-two-factor/verify-otp/{otp}")
     public ResponseEntity<User> enableTwoFactorAuthentication(@RequestHeader("Authorization") String jwt) throws  Exception
     {
