@@ -30,7 +30,7 @@ public class JwtProvider {
         return jwt;
 
     }
-
+//get email from token
     public static String getEmailFromToken(String token) {
 
         String jwt=token.substring(7);
